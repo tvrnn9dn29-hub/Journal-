@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ADHS Fokus">
+  <title>ADHS Bullet Journal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #090d16;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      padding-bottom: 90px;
+    }
+    .glass {
+      background: rgba(30, 41, 59, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .nav-blur {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    input, select {
+      font-size: 16px !important; /* Verhindert Auto-Zoom auf dem iPhone */
+    }
+    .check-anim {
+      transition: all 0.2s ease;
+    }
+    .check-anim:active {
+      transform: scale(0.92);
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-30 nav-blur px-5 pt-4 pb-3 flex items-center justify-between">
+    <div>
+      <p id="current-date" class="text-xs font-semibold uppercase tracking-wider text-indigo-400"></p>
+      <h1 class="text-xl font-bold tracking-tight text-white">Fokus Cockpit</h1>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="exportData()" title="Backup speichern" class="p-2 rounded-xl glass text-slate-300 hover:text-white active:scale-95 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      </button>
+      <label title="Backup laden" class="p-2 rounded-xl glass text-slate-300 hover:text-white active:scale-95 transition cursor-pointer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(event)">
+      </label>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-lg mx-auto px-4 pt-5 space-y-6">
+
+    <!-- TAB 1: HEUTE & BRAINDUMP -->
+    <section id="tab-today" class="space-y-6">
+      
+      <!-- Top 3 Fokus -->
+      <div class="glass rounded-2xl p-4 shadow-lg">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">⚡</span>
+            <h2 class="font-bold text-base text-white">Heute im Fokus (Max. 3)</h2>
+          </div>
+          <span id="focus-counter" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300">0 / 3</span>
+        </div>
+
+        <form onsubmit="addTodo(event, true)" class="flex gap-2 mb-3">
+          <input id="focus-input" type="text" placeholder="Wichtigste Aufgabe heute..." class="w-full rounded-xl bg-slate-900/90 border border-slate-700/80 px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-semibold px-4 rounded-xl transition">+</button>
+        </form>
+
+        <ul id="focus-list" class="space-y-2"></ul>
+      </div>
+
+      <!-- Braindump Parkplatz -->
+      <div class="glass rounded-2xl p-4 shadow-lg">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">📥</span>
+            <h2 class="font-bold text-base text-white">Braindump (Kopf leeren)</h2>
+          </div>
+          <span id="dump-counter" class="text-xs text-slate-400">0 Einträge</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-3">Alles ungefiltert reinwerfen. Mit <span class="text-indigo-400 font-bold">↑</span> holst du es in deinen Tag.</p>
+
+        <form onsubmit="addTodo(event, false)" class="flex gap-2 mb-3">
+          <input id="dump-input" type="text" placeholder="Gedankenblitz oder To-do..." class="w-full rounded-xl bg-slate-900/90 border border-slate-700/80 px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          <button type="submit" class="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white font-semibold px-4 rounded-xl transition">+</button>
+        </form>
+
+        <ul id="dump-list" class="space-y-2"></ul>
+      </div>
+    </section>
+
+    <!-- TAB 2: WO LIEGT WAS? -->
+    <section id="tab-items" class="space-y-5 hidden">
+      <div class="glass rounded-2xl p-4 shadow-lg">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-lg">📍</span>
+          <h2 class="font-bold text-base text-white">Neuen Ort speichern</h2>
+        </div>
+        <form onsubmit="addItem(event)" class="space-y-2.5">
+          <input id="item-name" type="text" placeholder="Was? (z.B. Ersatzschlüssel, Reisepass)" required class="w-full rounded-xl bg-slate-900/90 border border-slate-700/80 px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+          <div class="flex gap-2">
+            <input id="item-location" type="text" placeholder="Wo genau? (z.B. Keller, Regal links)" required class="w-full rounded-xl bg-slate-900/90 border border-slate-700/80 px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-semibold px-5 rounded-xl transition">Speichern</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Suche & Liste -->
+      <div class="glass rounded-2xl p-4 shadow-lg">
+        <div class="relative mb-3">
+          <input id="item-search" oninput="renderItems()" type="text" placeholder="🔍 Suchen nach Gegenstand oder Ort..." class="w-full rounded-xl bg-slate-900/90 border border-slate-700/80 pl-3.5 pr-9 py-2.5 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500">
+        </div>
+        <ul id="items-list" class="space-y-2.5"></ul>
+      </div>
+    </section>
+
+    <!-- TAB 3: MONAT & JAHR -->
+    <section id="tab-planner" class="space-y-6 hidden">
+      
+      <!-- Monats-Fokus -->
+      <div class="glass rounded-2xl p-4 shadow-lg">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🎯</span>
+            <h2 class="font-bold text-base text-white">Ziele in diesem Monat</h2>
+          </div>
+        </div>
+        <form onsubmit="addMonthlyGoal(event)" class="flex gap-2 mb-3">
+          <input id="month-goal-input" type="text" placeholder="Was steht diesen Monat an?" class="w-full rounded-xl bg-slate-900/90 border border-slate-700/80 px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+          <button type="submit" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-semibold px-4 rounded-xl transition">+</button>
+        </form>
+        <ul id="month-goal-list" class="space-y-2"></ul>
+      </div>
+
+      <!-- Jahresübersicht (Future Log) -->
+      <div class="glass rounded-2xl p-4 shadow-lg">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-lg">🗓️</span>
+          <h2 class="font-bold text-base text-white">Jahresübersicht (Future Log)</h2>
+        </div>
+        <p class="text-xs text-slate-400 mb-3">Für Termine, TÜV, Urlaube oder Saison-Aufgaben in kommenden Monaten.</p>
+
+        <form onsubmit="addFutureLog(event)" class="space-y-2.5 mb-4">
+          <div class="flex gap-2">
+            <select id="future-month" class="rounded-xl bg-slate-900/90 border border-slate-700/80 px-3 py-2.5 text-white focus:outline-none focus:border-amber-500">
+              <option value="0">Januar</option>
+              <option value="1">Februar</option>
+              <option value="2">März</option>
+              <option value="3">April</option>
+              <option value="4">Mai</option>
+              <option value="5">Juni</option>
+              <option value="6">Juli</option>
+              <option value="7">August</option>
+              <option value="8">September</option>
+              <option value="9">Oktober</option>
+              <option value="10">November</option>
+              <option value="11">Dezember</option>
+            </select>
+            <input id="future-input" type="text" placeholder="Termin / Ereignis..." required class="w-full rounded-xl bg-slate-900/90 border border-slate-700/80 px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+            <button type="submit" class="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white font-semibold px-4 rounded-xl transition">+</button>
+          </div>
+        </form>
+
+        <div id="future-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Bottom Tab Navigation -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40 nav-blur px-6 py-2">
+    <div class="max-w-md mx-auto flex justify-around items-center">
+      <button onclick="switchTab('today')" id="nav-today" class="flex flex-col items-center py-1 px-4 rounded-xl text-indigo-400 font-medium transition">
+        <span class="text-xl mb-0.5">⚡</span>
+        <span class="text-xs">Heute & Kopf</span>
+      </button>
+      <button onclick="switchTab('items')" id="nav-items" class="flex flex-col items-center py-1 px-4 rounded-xl text-slate-400 font-medium transition">
+        <span class="text-xl mb-0.5">📍</span>
+        <span class="text-xs">Wo liegt was?</span>
+      </button>
+      <button onclick="switchTab('planner')" id="nav-planner" class="flex flex-col items-center py-1 px-4 rounded-xl text-slate-400 font-medium transition">
+        <span class="text-xl mb-0.5">📅</span>
+        <span class="text-xs">Monat & Jahr</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    const MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+
+    const defaultData = {
+      todos: [
+        { id: 1, text: "Erste Fokus-Aufgabe abhaken", isFocus: true, done: false },
+        { id: 2, text: "Gedankenblitz hier im Braindump parken", isFocus: false, done: false }
+      ],
+      items: [
+        { id: 101, name: "Reisepass & Stammbuch", location: "Schlafzimmer, Kommode, 2. Schublade links", date: "Heute" },
+        { id: 102, name: "Ersatzschlüssel Schuppen", location: "Keller, Werkzeugwand oben rechts", date: "Heute" }
+      ],
+      monthlyGoals: [
+        { id: 201, text: "Steuerbelege sortieren", done: false }
+      ],
+      futureLog: [
+        { id: 301, month: new Date().getMonth(), text: "Außenwasserhahn abstellen" }
+      ]
+    };
+
+    let state = JSON.parse(localStorage.getItem("adhs_bujo_v1")) || defaultData;
+
+    function saveState() {
+      localStorage.setItem("adhs_bujo_v1", JSON.stringify(state));
+      renderAll();
+    }
+
+    function initDate() {
+      const now = new Date();
+      const opts = { weekday: 'long', day: 'numeric', month: 'long' };
+      document.getElementById("current-date").textContent = now.toLocaleDateString('de-DE', opts);
+      document.getElementById("future-month").value = now.getMonth();
+    }
+
+    function switchTab(tab) {
+      ['today', 'items', 'planner'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+      });
+      const colors = { today: 'text-indigo-400', items: 'text-emerald-400', planner: 'text-amber-400' };
+      ['today', 'items', 'planner'].forEach(t => {
+        const btn = document.getElementById(`nav-${t}`);
+        btn.className = `flex flex-col items-center py-1 px-4 rounded-xl font-medium transition ${t === tab ? colors[t] : 'text-slate-400'}`;
+      });
+    }
+
+    // --- TAB 1: TODOS ---
+    function addTodo(e, isFocus) {
+      e.preventDefault();
+      const input = document.getElementById(isFocus ? "focus-input" : "dump-input");
+      const text = input.value.trim();
+      if (!text) return;
+
+      const activeFocusCount = state.todos.filter(t => t.isFocus && !t.done).length;
+      if (isFocus && activeFocusCount >= 3) {
+        alert("Stopp! Maximal 3 offene Fokus-Aufgaben gleichzeitig. Hake erst eine ab oder schiebe sie mit ↓ in den Braindump.");
+        return;
+      }
+
+      state.todos.unshift({ id: Date.now(), text, isFocus, done: false });
+      input.value = "";
+      saveState();
+    }
+
+    function toggleTodo(id) {
+      const t = state.todos.find(x => x.id === id);
+      if (t) t.done = !t.done;
+      saveState();
+    }
+
+    function moveTodo(id) {
+      const t = state.todos.find(x => x.id === id);
+      if (!t) return;
+      if (!t.isFocus) {
+        const activeFocusCount = state.todos.filter(x => x.isFocus && !x.done).length;
+        if (activeFocusCount >= 3) {
+          alert("Dein Tages-Fokus hat schon 3 offene Aufgaben! Erledige erst eine, bevor du nachlädst.");
+          return;
+        }
+      }
+      t.isFocus = !t.isFocus;
+      saveState();
+    }
+
+    function deleteTodo(id) {
+      state.todos = state.todos.filter(x => x.id !== id);
+      saveState();
+    }
+
+    function renderTodos() {
+      const focusList = document.getElementById("focus-list");
+      const dumpList = document.getElementById("dump-list");
+      focusList.innerHTML = "";
+      dumpList.innerHTML = "";
+
+      const focusTodos = state.todos.filter(t => t.isFocus);
+      const dumpTodos = state.todos.filter(t => !t.isFocus);
+
+      const openFocus = focusTodos.filter(t => !t.done).length;
+      document.getElementById("focus-counter").textContent = `${openFocus} / 3 aktiv`;
+      document.getElementById("dump-counter").textContent = `${dumpTodos.length} geparkt`;
+
+      if (focusTodos.length === 0) {
+        focusList.innerHTML = `<li class="text-xs text-slate-500 py-2 text-center">Noch keine Fokus-Aufgabe gewählt.</li>`;
+      }
+      if (dumpTodos.length === 0) {
+        dumpList.innerHTML = `<li class="text-xs text-slate-500 py-2 text-center">Dein Kopf ist leer – stark!</li>`;
+      }
+
+      focusTodos.forEach(t => focusList.appendChild(createTodoEl(t, true)));
+      dumpTodos.forEach(t => dumpList.appendChild(createTodoEl(t, false)));
+    }
+
+    function createTodoEl(t, isFocus) {
+      const li = document.createElement("li");
+      li.className = `flex items-center justify-between gap-2 p-3 rounded-xl bg-slate-900/60 border border-slate-800 ${t.done ? 'opacity-50' : ''}`;
+      li.innerHTML = `
+        <button onclick="toggleTodo(${t.id})" class="flex items-center gap-3 text-left flex-1 check-anim">
+          <span class="w-5 h-5 rounded-md flex items-center justify-center border ${t.done ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-500'}">
+            ${t.done ? '✓' : ''}
+          </span>
+          <span class="text-sm ${t.done ? 'line-through text-slate-400' : 'text-slate-100'}">${escapeHtml(t.text)}</span>
+        </button>
+        <div class="flex items-center gap-1">
+          <button onclick="moveTodo(${t.id})" title="${isFocus ? 'Zurück in den Braindump' : 'In den Tages-Fokus holen'}" class="p-1.5 rounded-lg text-xs font-bold bg-slate-800 text-indigo-400 hover:bg-slate-700">
+            ${isFocus ? '↓' : '↑'}
+          </button>
+          <button onclick="deleteTodo(${t.id})" class="p-1.5 rounded-lg text-xs text-slate-500 hover:text-rose-400">✕</button>
+        </div>
+      `;
+      return li;
+    }
+
+    // --- TAB 2: WO LIEGT WAS? ---
+    function addItem(e) {
+      e.preventDefault();
+      const nameIn = document.getElementById("item-name");
+      const locIn = document.getElementById("item-location");
+      const name = nameIn.value.trim();
+      const location = locIn.value.trim();
+      if (!name || !location) return;
+
+      const dateStr = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      state.items.unshift({ id: Date.now(), name, location, date: dateStr });
+      nameIn.value = "";
+      locIn.value = "";
+      saveState();
+    }
+
+    function deleteItem(id) {
+      state.items = state.items.filter(x => x.id !== id);
+      saveState();
+    }
+
+    function renderItems() {
+      const q = (document.getElementById("item-search").value || "").toLowerCase();
+      const list = document.getElementById("items-list");
+      list.innerHTML = "";
+
+      const filtered = state.items.filter(i =>
+        i.name.toLowerCase().includes(q) || i.location.toLowerCase().includes(q)
+      );
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<li class="text-xs text-slate-500 py-4 text-center">Keine Gegenstände gefunden.</li>`;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const li = document.createElement("li");
+        li.className = "p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-start justify-between gap-3";
+        li.innerHTML = `
+          <div>
+            <p class="font-semibold text-sm text-emerald-300">${escapeHtml(item.name)}</p>
+            <p class="text-sm text-slate-200 mt-0.5">📍 ${escapeHtml(item.location)}</p>
+            <p class="text-[11px] text-slate-500 mt-1">Eingetragen: ${item.date}</p>
+          </div>
+          <button onclick="deleteItem(${item.id})" class="text-slate-500 hover:text-rose-400 p-1 text-xs">✕</button>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    // --- TAB 3: MONAT & JAHR ---
+    function addMonthlyGoal(e) {
+      e.preventDefault();
+      const input = document.getElementById("month-goal-input");
+      const text = input.value.trim();
+      if (!text) return;
+      state.monthlyGoals.push({ id: Date.now(), text, done: false });
+      input.value = "";
+      saveState();
+    }
+
+    function toggleMonthlyGoal(id) {
+      const g = state.monthlyGoals.find(x => x.id === id);
+      if (g) g.done = !g.done;
+      saveState();
+    }
+
+    function deleteMonthlyGoal(id) {
+      state.monthlyGoals = state.monthlyGoals.filter(x => x.id !== id);
+      saveState();
+    }
+
+    function addFutureLog(e) {
+      e.preventDefault();
+      const month = parseInt(document.getElementById("future-month").value, 10);
+      const input = document.getElementById("future-input");
+      const text = input.value.trim();
+      if (!text) return;
+      state.futureLog.push({ id: Date.now(), month, text });
+      input.value = "";
+      saveState();
+    }
+
+    function deleteFutureLog(id) {
+      state.futureLog = state.futureLog.filter(x => x.id !== id);
+      saveState();
+    }
+
+    function renderPlanner() {
+      const mList = document.getElementById("month-goal-list");
+      mList.innerHTML = "";
+      if (state.monthlyGoals.length === 0) {
+        mList.innerHTML = `<li class="text-xs text-slate-500 py-2 text-center">Noch keine Monatsziele eingetragen.</li>`;
+      } else {
+        state.monthlyGoals.forEach(g => {
+          const li = document.createElement("li");
+          li.className = `flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800 ${g.done ? 'opacity-50' : ''}`;
+          li.innerHTML = `
+            <button onclick="toggleMonthlyGoal(${g.id})" class="flex items-center gap-3 text-left flex-1">
+              <span class="w-5 h-5 rounded-md flex items-center justify-center border ${g.done ? 'bg-amber-600 border-amber-600 text-white' : 'border-slate-500'}">${g.done ? '✓' : ''}</span>
+              <span class="text-sm ${g.done ? 'line-through text-slate-400' : 'text-slate-100'}">${escapeHtml(g.text)}</span>
+            </button>
+            <button onclick="deleteMonthlyGoal(${g.id})" class="text-slate-500 hover:text-rose-400 p-1 text-xs">✕</button>
+          `;
+          mList.appendChild(li);
+        });
+      }
+
+      const grid = document.getElementById("future-grid");
+      grid.innerHTML = "";
+      MONTHS.forEach((mName, idx) => {
+        const entries = state.futureLog.filter(f => f.month === idx);
+        const box = document.createElement("div");
+        box.className = "p-3 rounded-xl bg-slate-900/60 border border-slate-800";
+        const itemsHtml = entries.length === 0
+          ? `<p class="text-xs text-slate-600 italic">Keine Einträge</p>`
+          : entries.map(e => `
+              <div class="flex items-center justify-between text-xs text-slate-200 py-1 border-b border-slate-800/60 last:border-0">
+                <span>• ${escapeHtml(e.text)}</span>
+                <button onclick="deleteFutureLog(${e.id})" class="text-slate-500 hover:text-rose-400 ml-2">✕</button>
+              </div>
+            `).join("");
+
+        box.innerHTML = `
+          <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-1.5">${mName}</h3>
+          <div>${itemsHtml}</div>
+        `;
+        grid.appendChild(box);
+      });
+    }
+
+    // --- BACKUP ---
+    function exportData() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `adhs-journal-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported.todos && imported.items) {
+            state = imported;
+            saveState();
+            alert("Backup erfolgreich geladen!");
+          }
+        } catch (err) {
+          alert("Fehler beim Laden der Datei.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    function renderAll() {
+      renderTodos();
+      renderItems();
+      renderPlanner();
+    }
+
+    initDate();
+    renderAll();
+  </script>
+</body>
+</html>
